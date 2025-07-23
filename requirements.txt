@@ -1,0 +1,11 @@
+# Core requirements for Raspberry Pi thermal logging system
+opencv-python-headless==4.8.0  # Optimized for Raspberry Pi, no GUI dependencies
+numpy>=1.24.0                  # Array processing for thermal data
+pyserial>=3.5                  # Arduino communication
+pandas>=1.5.0                  # Data structuring and CSV handling
+RPi.GPIO>=0.7.0               # Raspberry Pi GPIO control
+python-dateutil>=2.8.2        # Advanced date handling
+
+# Optional: For future Google Earth Engine integration
+geopy>=2.3.0                  # Geographical calculations
+earthengine-api>=0.1.358      # Google Earth Engine API
