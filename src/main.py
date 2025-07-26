@@ -2,7 +2,7 @@
 #!/usr/bin/env python3
 """
 Thermal Logger Main Program
---------------------------
+---------------------------
 Coordinates data collection from thermal camera and Arduino (GPS/RTC)
 and saves it in a format suitable for later use with Google Earth Engine.
 """
@@ -33,7 +33,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Directory for thermal images
+# Directories
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
 THERMAL_DIR = os.path.join(PROJECT_ROOT, 'data', 'flir_lepton')
 
@@ -62,21 +62,6 @@ class ThermalLoggerSystem:
         """Handle system shutdown gracefully."""
         logger.info("Shutdown signal received. Cleaning up...")
         self.running = False
-
-    def _process_thermal(self, current_time):
-        """Process thermal data at appropriate intervals."""
-        if current_time - self.last_thermal >= INTERVALS['thermal']:
-            try:
-                frame = self.thermal.capture_frame()
-                key = self.thermal.display_frame(frame)
-                # Save raw and colored images
-                raw_path, color_path = self.thermal.save_frame(frame, save_dir=THERMAL_DIR)
-                logger.info(f"Saved thermal images: raw={raw_path}, color={color_path}")
-                self.last_thermal = current_time
-            except Exception as e:
-                logger.error(f"Error capturing thermal image: {e}")
-                if DEBUG:
-                    logger.exception("Detailed error:")
 
     def _process_arduino_data(self, current_time):
         """Process Arduino data (GPS and timestamp)."""
@@ -116,19 +101,35 @@ class ThermalLoggerSystem:
             while self.running:
                 current_time = time.time()
 
-                # Process thermal images
-                self._process_thermal(current_time)
+                # Always capture and display frame
+                frame = self.thermal.capture_frame()
+                key = self.thermal.display_frame(frame)
 
-                # Process Arduino data
+                # Periodic save based on interval
+                if current_time - self.last_thermal >= INTERVALS['thermal']:
+                    try:
+                        raw_path, color_path = self.thermal.save_frame(frame, save_dir=THERMAL_DIR)
+                        logger.info(f"Saved thermal images: raw={raw_path}, color={color_path}")
+                        self.last_thermal = current_time
+                    except Exception as e:
+                        logger.error(f"Error saving thermal image: {e}")
+                        if DEBUG:
+                            logger.exception("Detailed error:")
+
+                # Process Arduino every loop
                 self._process_arduino_data(current_time)
 
-                # Check for manual quit
-                if cv2.waitKey(1) & 0xFF == ord('q'):
+                # Handle key inputs
+                if key == ord('q'):
                     logger.info("Manual quit requested")
                     break
+                elif key == ord('s'):
+                    # immediate save
+                    raw_path, color_path = self.thermal.save_frame(frame, save_dir=THERMAL_DIR)
+                    logger.info(f"📸 Manual save: raw={raw_path}, color={color_path}")
 
-                # Short sleep to prevent CPU overuse
-                time.sleep(0.1)
+                # Brief pause
+                time.sleep(0.05)
 
         except Exception as e:
             logger.error(f"Unexpected error in main loop: {e}")
