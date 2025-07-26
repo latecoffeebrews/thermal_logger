@@ -11,8 +11,9 @@ import cv2
 import numpy as np
 from datetime import datetime
 
-# Force Qt to use the X11 (xcb) plugin instead of Wayland
-os.environ['QT_QPA_PLATFORM'] = 'xcb'
+# Force Qt to use the X11 (xcb) plugin instead of Wayland when possible
+if 'QT_QPA_PLATFORM' not in os.environ:
+    os.environ['QT_QPA_PLATFORM'] = 'xcb'
 
 class ThermalCamera:
     def __init__(
