@@ -9,6 +9,7 @@ Controls: s = save frame, q = quit
 
 import os
 import sys
+from datetime import datetime
 
 # ── Make sure we can import thermal_camera.py from the same folder ──
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -33,7 +34,8 @@ def main():
     # capture–display loop
     while True:
         frame = cam.capture_frame()
-        key = cam.display_frame(frame)
+        timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+        key = cam.display_frame(frame, timestamp=timestamp)
 
         if key == ord('s'):
             raw_path, color_path = cam.save_frame(frame, save_dir=save_dir)
