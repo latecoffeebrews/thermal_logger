@@ -46,6 +46,9 @@ class ThermalLoggerSystem:
         self.last_gps = 0
         self.last_time = 0
 
+        self.overlay_timestamp = ""
+        self.overlay_gps = ""
+
         # Initialize components
         self.data_logger = DataLogger()
         self.thermal = ThermalCamera(device_index=0)
@@ -74,12 +77,21 @@ class ThermalLoggerSystem:
                 if 'gps' in arduino_data and current_time - self.last_gps >= INTERVALS['gps']:
                     self.data_logger.log_data('gps', arduino_data['gps'])
                     logger.info(f"GPS: {arduino_data['gps']}")
+                    gps_info = arduino_data['gps']
+                    try:
+                        lat = gps_info.get('latitude') or gps_info.get('lat')
+                        lon = gps_info.get('longitude') or gps_info.get('lon')
+                        if lat is not None and lon is not None:
+                            self.overlay_gps = f"{float(lat):.6f}, {float(lon):.6f}"
+                    except Exception:
+                        pass
                     self.last_gps = current_time
 
                 # Handle timestamp
                 if 'timestamp' in arduino_data and current_time - self.last_time >= INTERVALS['time']:
                     self.data_logger.log_data('time', arduino_data['timestamp'])
                     logger.info(f"Time: {arduino_data['timestamp']}")
+                    self.overlay_timestamp = arduino_data['timestamp']
                     self.last_time = current_time
 
                 # Save raw HC-12 data
@@ -103,7 +115,12 @@ class ThermalLoggerSystem:
 
                 # Always capture and display frame
                 frame = self.thermal.capture_frame()
-                key = self.thermal.display_frame(frame)
+
+                # Determine overlay texts
+                timestamp_text = self.overlay_timestamp or datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+                gps_text = self.overlay_gps if self.overlay_gps else None
+
+                key = self.thermal.display_frame(frame, timestamp=timestamp_text, gps=gps_text)
 
                 # Periodic save based on interval
                 if current_time - self.last_thermal >= INTERVALS['thermal']:

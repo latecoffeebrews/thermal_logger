@@ -11,8 +11,9 @@ import cv2
 import numpy as np
 from datetime import datetime
 
-# Force Qt to use the X11 (xcb) plugin instead of Wayland
-os.environ['QT_QPA_PLATFORM'] = 'xcb'
+# Force Qt to use the X11 (xcb) plugin instead of Wayland when possible
+if 'QT_QPA_PLATFORM' not in os.environ:
+    os.environ['QT_QPA_PLATFORM'] = 'xcb'
 
 class ThermalCamera:
     def __init__(
@@ -93,10 +94,19 @@ class ThermalCamera:
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         return gray
 
-    def display_frame(self, frame):
+    def display_frame(self, frame, timestamp=None, gps=None):
         """
-        Apply autoscale or fixed min/max, colormap, zoom & pan,
-        then display in the window. Return last key pressed.
+        Apply autoscale or fixed min/max, colormap, zoom & pan, then display
+        the frame with optional text overlays. Return last key pressed.
+
+        Parameters
+        ----------
+        frame : np.ndarray
+            Grayscale thermal frame from the camera.
+        timestamp : str, optional
+            Timestamp string to overlay on the image.
+        gps : str, optional
+            GPS coordinates string to overlay when available.
         """
         # Auto-contrast
         if self.auto_scale:
@@ -117,6 +127,30 @@ class ThermalCamera:
         y1 = np.clip(cy - zoom_h // 2, 0, h - zoom_h)
         crop = colored[y1:y1 + zoom_h, x1:x1 + zoom_w]
         disp = cv2.resize(crop, self.display_size, interpolation=cv2.INTER_LINEAR)
+
+        # ----- overlays -----
+        if timestamp:
+            cv2.putText(
+                disp,
+                timestamp,
+                (10, 25),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (255, 255, 255),
+                2,
+                cv2.LINE_AA,
+            )
+        if gps:
+            cv2.putText(
+                disp,
+                gps,
+                (10, self.display_size[1] - 10),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (255, 255, 255),
+                2,
+                cv2.LINE_AA,
+            )
 
         cv2.imshow(self.window_name, disp)
         key = cv2.waitKey(1) & 0xFF
